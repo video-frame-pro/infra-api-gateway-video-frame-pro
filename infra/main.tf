@@ -40,8 +40,7 @@ resource "aws_api_gateway_method" "auth_register_post" {
   rest_api_id   = aws_api_gateway_rest_api.video_frame_pro_api.id
   resource_id   = aws_api_gateway_resource.auth_register.id
   http_method   = "POST"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
+  authorization = "NONE"  # Desvincula o Cognito para permitir o registro sem autenticação
 }
 
 # Definindo a integração para o método POST /auth/register
@@ -49,7 +48,7 @@ resource "aws_api_gateway_integration" "auth_register_integration" {
   rest_api_id = aws_api_gateway_rest_api.video_frame_pro_api.id
   resource_id = aws_api_gateway_resource.auth_register.id
   http_method = aws_api_gateway_method.auth_register_post.http_method
-  type        = "MOCK"
+  type        = "MOCK"  # Mock para testes, substitua por uma integração real quando necessário
 }
 
 # Criando o método POST para o endpoint /auth/login (login de usuário)
