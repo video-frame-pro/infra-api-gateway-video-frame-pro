@@ -4,7 +4,7 @@ provider "aws" {
 
 # Referenciando o User Pool do Cognito existente
 data "aws_cognito_user_pool" "video_frame_pro_pool" {
-  provider     = "aws"
+  provider     = aws
   user_pool_id = var.cognito_user_pool_id
 }
 
