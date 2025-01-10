@@ -50,7 +50,7 @@ resource "aws_api_gateway_integration" "auth_register_integration" {
   http_method             = aws_api_gateway_method.auth_register_post.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"  # Utilizando o proxy para Lambda
-  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${var.auth_register_lambda_arn}/invocations"
+  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${var.auth_register_lambda_name}/invocations"
 }
 
 # Criando o método POST para o endpoint /auth/login (login de usuário)
@@ -69,7 +69,7 @@ resource "aws_api_gateway_integration" "auth_login_integration" {
   http_method             = aws_api_gateway_method.auth_login_post.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"  # Utilizando o proxy para Lambda
-  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${var.auth_login_lambda_arn}/invocations"
+  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${var.auth_login_lambda_name}/invocations"
 }
 
 # Criando o Authorizer do Cognito para autenticação das APIs com JWT
