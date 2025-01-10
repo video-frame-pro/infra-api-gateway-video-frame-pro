@@ -58,7 +58,8 @@ resource "aws_api_gateway_method" "auth_login_post" {
   rest_api_id   = aws_api_gateway_rest_api.video_frame_pro_api.id
   resource_id   = aws_api_gateway_resource.auth_login.id
   http_method   = "POST"
-  authorization = "COGNITO_USER_POOLS"  # Usando o pool de usuários do Cognito
+  authorization = "COGNITO_USER_POOLS"  # Usando o Cognito User Pools para autenticação
+  authorizer_id = aws_api_gateway_authorizer.cognito.id  # Referenciando o ID do authorizer correto
 }
 
 # Definindo a integração para o método POST /auth/login (integração com Lambda)
