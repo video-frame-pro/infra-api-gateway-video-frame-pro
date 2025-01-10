@@ -8,6 +8,9 @@ data "aws_cognito_user_pool" "video_frame_pro_pool" {
   user_pool_id = var.cognito_user_pool_id
 }
 
+# Adicionando o data source aws_caller_identity
+data "aws_caller_identity" "current" {}
+
 # Criando o API Gateway REST API
 resource "aws_api_gateway_rest_api" "video_frame_pro_api" {
   name        = "video-frame-pro-api"
@@ -103,18 +106,18 @@ resource "aws_api_gateway_stage" "prod" {
 
 # Permissão para o API Gateway invocar a função Lambda de registro
 resource "aws_lambda_permission" "allow_api_gateway_register" {
-  statement_id  = "AllowExecutionFromAPIGateway"
+  statement_id  = "AllowExecutionFromAPIGateway_register"
   action        = "lambda:InvokeFunction"
-  function_name = var.auth_register_lambda_name  # Nome da função Lambda (não o ARN completo)
+  function_name = var.auth_register_lambda_name  # Nome da função
   principal     = "apigateway.amazonaws.com"
-  source_arn    = aws_api_gateway_rest_api.video_frame_pro_api.execution_arn  # ARN do API Gateway
+  source_arn    = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.video_frame_pro_api.id}/*/POST/auth/register"
 }
 
 # Permissão para o API Gateway invocar a função Lambda de login
 resource "aws_lambda_permission" "allow_api_gateway_login" {
-  statement_id  = "AllowExecutionFromAPIGateway"
+  statement_id  = "AllowExecutionFromAPIGateway_login"
   action        = "lambda:InvokeFunction"
-  function_name = var.auth_login_lambda_name  # Nome da função Lambda (não o ARN completo)
+  function_name = var.auth_login_lambda_name  # Nome da função
   principal     = "apigateway.amazonaws.com"
-  source_arn    = aws_api_gateway_rest_api.video_frame_pro_api.execution_arn  # ARN do API Gateway
+  source_arn    = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.video_frame_pro_api.id}/*/POST/auth/login"
 }
