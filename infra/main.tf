@@ -105,14 +105,16 @@ resource "aws_api_gateway_stage" "prod" {
 resource "aws_lambda_permission" "allow_api_gateway_register" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = var.auth_register_lambda_arn
+  function_name = var.auth_register_lambda_name  # Nome da função, não o ARN completo
   principal     = "apigateway.amazonaws.com"
+  source_arn    = var.auth_register_lambda_arn # ARN do API Gateway
 }
 
 # Permissão para o API Gateway invocar a função Lambda de login
 resource "aws_lambda_permission" "allow_api_gateway_login" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = var.auth_login_lambda_arn
+  function_name = var.auth_login_lambda_name # Nome da função, não o ARN completo
   principal     = "apigateway.amazonaws.com"
+  source_arn    =  var.auth_login_lambda_arn  # ARN do API Gateway
 }
