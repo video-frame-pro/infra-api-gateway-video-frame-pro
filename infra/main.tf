@@ -61,8 +61,7 @@ resource "aws_api_gateway_method" "auth_login_post" {
   rest_api_id   = aws_api_gateway_rest_api.video_frame_pro_api.id
   resource_id   = aws_api_gateway_resource.auth_login.id
   http_method   = "POST"
-  authorization = "COGNITO_USER_POOLS"  # Usando o Cognito User Pools para autenticação
-  authorizer_id = aws_api_gateway_authorizer.cognito.id  # Referenciando o ID do authorizer correto
+  authorization = "NONE"  # Nenhuma autorização no POST /login
 }
 
 # Definindo a integração para o método POST /auth/login (integração com Lambda)
@@ -77,12 +76,12 @@ resource "aws_api_gateway_integration" "auth_login_integration" {
 
 # Criando o Authorizer do Cognito para autenticação das APIs com JWT
 resource "aws_api_gateway_authorizer" "cognito" {
-  name               = "cognito-authorizer"
-  rest_api_id        = aws_api_gateway_rest_api.video_frame_pro_api.id
-  identity_source    = "method.request.header.Authorization"
+  name                      = "cognito-authorizer"
+  rest_api_id               = aws_api_gateway_rest_api.video_frame_pro_api.id
+  identity_source           = "method.request.header.Authorization"
   identity_validation_expression = "^Bearer [A-Za-z0-9-._~+/]+=*$"
-  provider_arns      = [var.cognito_user_pool_arn]
-  type               = "COGNITO_USER_POOLS"
+  provider_arns             = [var.cognito_user_pool_arn]
+  type                      = "COGNITO_USER_POOLS"
 }
 
 # Criação das APIs do API Gateway
