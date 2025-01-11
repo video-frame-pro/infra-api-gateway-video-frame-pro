@@ -25,3 +25,15 @@ variable "auth_login_lambda_name" {
   type        = string
 }
 
+variable "auth_register_lambda_arn" {
+  description = "Arn da função Lambda de registro de usuário"
+  type        = string
+}
+
+variable "auth_login_lambda_arn" {
+  description = "Arn da função Lambda de login de usuário"
+  type        = string
+}
+
+
+
