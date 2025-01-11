@@ -53,7 +53,7 @@ resource "aws_api_gateway_integration" "auth_register_integration" {
   http_method             = aws_api_gateway_method.auth_register_post.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"  # Utilizando o proxy para Lambda
-  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${var.auth_register_lambda_name}/invocations"
+  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${var.auth_register_lambda_arn}/invocations"
 }
 
 # Criando o método POST para o endpoint /auth/login (login de usuário)
@@ -72,7 +72,7 @@ resource "aws_api_gateway_integration" "auth_login_integration" {
   http_method             = aws_api_gateway_method.auth_login_post.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"  # Utilizando o proxy para Lambda
-  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${var.auth_login_lambda_name}/invocations"
+  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${var.auth_login_lambda_arn}/invocations"
 }
 
 # Criando o Authorizer do Cognito para autenticação das APIs com JWT
@@ -108,7 +108,7 @@ resource "aws_api_gateway_stage" "prod" {
 resource "aws_lambda_permission" "allow_api_gateway_register" {
   statement_id  = "AllowExecutionFromAPIGateway_register"
   action        = "lambda:InvokeFunction"
-  function_name = var.auth_register_lambda_name  # Nome da função
+  function_name = var.auth_register_lambda_name  # Nome da função Lambda
   principal     = "apigateway.amazonaws.com"
   source_arn    = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.video_frame_pro_api.id}/*/POST/auth/register"
 }
@@ -117,7 +117,7 @@ resource "aws_lambda_permission" "allow_api_gateway_register" {
 resource "aws_lambda_permission" "allow_api_gateway_login" {
   statement_id  = "AllowExecutionFromAPIGateway_login"
   action        = "lambda:InvokeFunction"
-  function_name = var.auth_login_lambda_name  # Nome da função
+  function_name = var.auth_login_lambda_name  # Nome da função Lambda
   principal     = "apigateway.amazonaws.com"
   source_arn    = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.video_frame_pro_api.id}/*/POST/auth/login"
 }
