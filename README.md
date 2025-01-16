@@ -2,7 +2,7 @@
   <img src="https://i.ibb.co/zs1zcs3/Video-Frame.png" width="30%" />
 </p>
 
-# infra-api-gateway-video-frame-pro-api
+# infra-api-gateway-video-frame-pro
 
 Este repositório é responsável pela configuração do **API Gateway** para expor as APIs de autenticação, upload de vídeos e consulta de status. Ele também integra com o **Cognito** para autenticação via JWT e funções Lambda para o processo de login e registro de usuários.
 
