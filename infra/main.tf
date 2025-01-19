@@ -2,121 +2,71 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Referenciando o User Pool do Cognito existente
-data "aws_cognito_user_pool" "video_frame_pro_pool" {
-  provider     = aws
-  user_pool_id = var.cognito_user_pool_id
+# Recuperando o Cognito User Pool ID do SSM
+data "aws_ssm_parameter" "cognito_user_pool_id" {
+  name = "/video-frame-pro/cognito/user_pool_id"
 }
 
-# Adicionando o data source aws_caller_identity
-data "aws_caller_identity" "current" {}
-
-# Criando o API Gateway REST API
+# API Gateway REST API
 resource "aws_api_gateway_rest_api" "video_frame_pro_api" {
   name        = "video-frame-pro-api"
-  description = "API Gateway para gerenciamento de vídeos"
+  description = "API Gateway para o projeto Video Frame Pro"
+
+  tags = {
+    Name        = "video-frame-pro-api"
+    Environment = var.environment
+  }
 }
 
-# Criando o recurso /auth no API Gateway para autenticação
-resource "aws_api_gateway_resource" "auth" {
-  rest_api_id = aws_api_gateway_rest_api.video_frame_pro_api.id
-  parent_id   = aws_api_gateway_rest_api.video_frame_pro_api.root_resource_id
-  path_part   = "auth"
-}
-
-# Criando o recurso /auth/register no API Gateway para registro de usuário
-resource "aws_api_gateway_resource" "auth_register" {
-  rest_api_id = aws_api_gateway_rest_api.video_frame_pro_api.id
-  parent_id   = aws_api_gateway_resource.auth.id
-  path_part   = "register"
-}
-
-# Criando o recurso /auth/login no API Gateway para login de usuário
-resource "aws_api_gateway_resource" "auth_login" {
-  rest_api_id = aws_api_gateway_rest_api.video_frame_pro_api.id
-  parent_id   = aws_api_gateway_resource.auth.id
-  path_part   = "login"
-}
-
-# Criando o método POST para o endpoint /auth/register (registro de usuário)
-resource "aws_api_gateway_method" "auth_register_post" {
-  rest_api_id   = aws_api_gateway_rest_api.video_frame_pro_api.id
-  resource_id   = aws_api_gateway_resource.auth_register.id
-  http_method   = "POST"
-  authorization = "NONE"  # Nenhuma autorização no POST /register
-}
-
-# Definindo a integração para o método POST /auth/register (integração com Lambda)
-resource "aws_api_gateway_integration" "auth_register_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.video_frame_pro_api.id
-  resource_id             = aws_api_gateway_resource.auth_register.id
-  http_method             = aws_api_gateway_method.auth_register_post.http_method
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"  # Utilizando o proxy para Lambda
-  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${var.auth_register_lambda_arn}/invocations"
-}
-
-# Criando o método POST para o endpoint /auth/login (login de usuário)
-resource "aws_api_gateway_method" "auth_login_post" {
-  rest_api_id   = aws_api_gateway_rest_api.video_frame_pro_api.id
-  resource_id   = aws_api_gateway_resource.auth_login.id
-  http_method   = "POST"
-  authorization = "NONE"  # Nenhuma autorização no POST /login
-}
-
-# Definindo a integração para o método POST /auth/login (integração com Lambda)
-resource "aws_api_gateway_integration" "auth_login_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.video_frame_pro_api.id
-  resource_id             = aws_api_gateway_resource.auth_login.id
-  http_method             = aws_api_gateway_method.auth_login_post.http_method
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"  # Utilizando o proxy para Lambda
-  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${var.auth_login_lambda_arn}/invocations"
-}
-
-# Criando o Authorizer do Cognito para autenticação das APIs com JWT
+# Cognito Authorizer
 resource "aws_api_gateway_authorizer" "cognito" {
   name                      = "cognito-authorizer"
   rest_api_id               = aws_api_gateway_rest_api.video_frame_pro_api.id
   identity_source           = "method.request.header.Authorization"
   identity_validation_expression = "^Bearer [A-Za-z0-9-._~+/]+=*$"
-  provider_arns             = [var.cognito_user_pool_arn]
+  provider_arns             = [data.aws_ssm_parameter.cognito_user_pool_id.value]
   type                      = "COGNITO_USER_POOLS"
 }
 
-# Criação das APIs do API Gateway
-resource "aws_api_gateway_deployment" "video_frame_pro_api_deployment" {
-  depends_on = [
-    aws_api_gateway_method.auth_register_post,
-    aws_api_gateway_method.auth_login_post,
-    aws_api_gateway_integration.auth_register_integration,
-    aws_api_gateway_integration.auth_login_integration
-  ]
-
+# Recurso raiz (/v1)
+resource "aws_api_gateway_resource" "v1" {
   rest_api_id = aws_api_gateway_rest_api.video_frame_pro_api.id
+  parent_id   = aws_api_gateway_rest_api.video_frame_pro_api.root_resource_id
+  path_part   = "v1"
 }
 
-# Definindo o estágio do API Gateway
-resource "aws_api_gateway_stage" "prod" {
-  deployment_id = aws_api_gateway_deployment.video_frame_pro_api_deployment.id
+# Configuração dinâmica para endpoints e métodos
+locals {
+  endpoints = [
+    { path = "auth/register", method = "POST", auth = "NONE" },
+    { path = "auth/login", method = "POST", auth = "NONE" },
+    { path = "upload", method = "POST", auth = "COGNITO_USER_POOLS" },
+    { path = "status-query", method = "GET", auth = "COGNITO_USER_POOLS" }
+  ]
+}
+
+# Recursos dinâmicos
+resource "aws_api_gateway_resource" "resources" {
+  for_each   = tomap({ for e in local.endpoints : e.path => e })
+  rest_api_id = aws_api_gateway_rest_api.video_frame_pro_api.id
+  parent_id   = aws_api_gateway_resource.v1.id
+  path_part   = split("/", each.value.path)[-1]
+}
+
+# Métodos dinâmicos
+resource "aws_api_gateway_method" "methods" {
+  for_each = tomap({ for e in local.endpoints : e.path => e })
+
   rest_api_id   = aws_api_gateway_rest_api.video_frame_pro_api.id
-  stage_name    = "prod"
+  resource_id   = aws_api_gateway_resource.resources[each.key].id
+  http_method   = each.value.method
+  authorization = each.value.auth == "NONE" ? "NONE" : "COGNITO_USER_POOLS"
+  authorizer_id = each.value.auth == "COGNITO_USER_POOLS" ? aws_api_gateway_authorizer.cognito.id : null
 }
 
-# Permissão para o API Gateway invocar a função Lambda de registro
-resource "aws_lambda_permission" "allow_api_gateway_register" {
-  statement_id  = "AllowExecutionFromAPIGateway_register"
-  action        = "lambda:InvokeFunction"
-  function_name = var.auth_register_lambda_name  # Nome da função Lambda
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.video_frame_pro_api.id}/*/POST/auth/register"
-}
-
-# Permissão para o API Gateway invocar a função Lambda de login
-resource "aws_lambda_permission" "allow_api_gateway_login" {
-  statement_id  = "AllowExecutionFromAPIGateway_login"
-  action        = "lambda:InvokeFunction"
-  function_name = var.auth_login_lambda_name  # Nome da função Lambda
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.video_frame_pro_api.id}/*/POST/auth/login"
+# Deploy da API Gateway
+resource "aws_api_gateway_deployment" "api_deployment" {
+  depends_on = [aws_api_gateway_method.methods]
+  rest_api_id = aws_api_gateway_rest_api.video_frame_pro_api.id
+  stage_name  = var.stage_name
 }
