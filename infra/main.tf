@@ -2,6 +2,8 @@ provider "aws" {
   region = var.aws_region
 }
 
+data "aws_caller_identity" "current" {}
+
 data "aws_ssm_parameter" "cognito_user_pool_id" {
   name = "/video-frame-pro/cognito/user_pool_id"
 }
