@@ -46,7 +46,7 @@ resource "aws_api_gateway_resource" "resources" {
   for_each   = tomap({ for e in local.endpoints : e.path => e })
   rest_api_id = aws_api_gateway_rest_api.video_frame_pro_api.id
   parent_id   = aws_api_gateway_resource.v1.id
-  path_part   = length(split("/", each.value.path)) > 1 ? split("/", each.value.path)[-1] : each.value.path
+  path_part   = element(split("/", each.value.path), length(split("/", each.value.path)) - 1)
 }
 
 resource "aws_api_gateway_method" "methods" {
