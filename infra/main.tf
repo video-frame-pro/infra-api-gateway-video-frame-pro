@@ -207,11 +207,6 @@ resource "aws_iam_policy" "api_gateway_policy" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "api_gateway_policy_attachment" {
-  role       = aws_iam_role.api_gateway_role.name
-  policy_arn = aws_iam_policy.api_gateway_policy.arn
-}
-
 # Anexar a política IAM à role do API Gateway
 resource "aws_iam_role_policy_attachment" "api_gateway_policy_attachment" {
   role       = aws_iam_role.api_gateway_role.name
