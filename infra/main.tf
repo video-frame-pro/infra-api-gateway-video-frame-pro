@@ -25,7 +25,7 @@ resource "aws_api_gateway_authorizer" "cognito_authorizer" {
   name          = "${var.prefix_name}-cognito-authorizer"
   type          = "COGNITO_USER_POOLS"
   rest_api_id   = aws_api_gateway_rest_api.api.id
-  provider_arns = [data.aws_ssm_parameter.cognito_user_pool_id.value]
+  provider_arns = ["arn:aws:cognito-idp:${var.aws_region}:${data.aws_caller_identity.current.account_id}:userpool/${data.aws_ssm_parameter.cognito_user_pool_id.value}"]
 }
 
 ######### RECURSOS DO API GATEWAY ######################################
