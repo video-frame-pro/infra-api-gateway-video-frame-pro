@@ -1,14 +1,14 @@
 ######### PROVEDOR AWS #################################################
-# Configuração do provedor AWS de forma dinâmica
+# Configuração dinâmica do provedor AWS, usando a região especificada no tfvars
 provider "aws" {
   region = var.aws_region
 }
 
 ######### DADOS AWS ####################################################
-# Obter informações sobre a conta AWS (ID da conta, ARN, etc.)
+# Obtém informações sobre a conta AWS (ID da conta, ARN, etc.)
 data "aws_caller_identity" "current" {}
 
-# Obter o User Pool ID do Cognito armazenado no SSM Parameter Store
+# Obtém o User Pool ID do Cognito armazenado no AWS Systems Manager (SSM)
 data "aws_ssm_parameter" "cognito_user_pool_id" {
   name = var.cognito_user_pool_id_ssm
 }
@@ -17,7 +17,7 @@ data "aws_ssm_parameter" "cognito_user_pool_id" {
 # Criar API Gateway REST para expor os endpoints da aplicação
 resource "aws_api_gateway_rest_api" "api" {
   name        = "${var.prefix_name}-api"
-  description = "API Gateway para gerenciar autenticação, orquestração e status de vídeos"
+  description = "API Gateway para autenticação, orquestração e status de vídeos"
 }
 
 # Criar autorizador Cognito para validar tokens JWT antes das requisições
@@ -49,28 +49,28 @@ resource "aws_api_gateway_resource" "user_login" {
   path_part   = "login"
 }
 
-# Criar endpoint base para orquestração de vídeos
+# Criar endpoint base para vídeos
 resource "aws_api_gateway_resource" "video" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_rest_api.api.root_resource_id
   path_part   = "video"
 }
 
-# Criar endpoint específico para a orquestração de vídeos
+# Criar endpoint específico para a orquestração de vídeos (POST)
 resource "aws_api_gateway_resource" "orchestrator" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_resource.video.id
   path_part   = "orchestrator"
 }
 
-# Criar endpoint base para consulta de status de vídeos
+# Criar endpoint específico para consulta de status de vídeos (GET)
 resource "aws_api_gateway_resource" "status" {
   rest_api_id = aws_api_gateway_rest_api.api.id
-  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  parent_id   = aws_api_gateway_resource.video.id
   path_part   = "status"
 }
 
-# Criar endpoint específico para consulta de um vídeo pelo ID
+# Criar endpoint correto para consulta de status de um vídeo específico por ID (GET)
 resource "aws_api_gateway_resource" "status_id" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_resource.status.id
@@ -78,7 +78,7 @@ resource "aws_api_gateway_resource" "status_id" {
 }
 
 ######### MÉTODOS DO API GATEWAY #######################################
-# Métodos para autenticação (não requerem autorização)
+# Métodos para autenticação (sem necessidade de autorização)
 resource "aws_api_gateway_method" "user_register_post" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.user_register.id
@@ -93,7 +93,7 @@ resource "aws_api_gateway_method" "user_login_post" {
   authorization = "NONE"
 }
 
-# Método para orquestração de vídeos com validação de token via Cognito
+# Método para orquestração de vídeos COM validação de token via Cognito
 resource "aws_api_gateway_method" "orchestrator_post" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.orchestrator.id
@@ -102,7 +102,7 @@ resource "aws_api_gateway_method" "orchestrator_post" {
   authorizer_id = aws_api_gateway_authorizer.cognito_authorizer.id
 }
 
-# Método para consultar o status de um vídeo com validação de token via Cognito
+# Método para consultar o status de um vídeo COM validação de token via Cognito
 resource "aws_api_gateway_method" "status_get" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.status_id.id
@@ -146,18 +146,15 @@ resource "aws_iam_policy" "api_gateway_policy" {
       },
       {
         # Permissão para validar tokens JWT no Cognito
-        Action   = [
-          "cognito-idp:GetUser",
-          "cognito-idp:ListUsers"
-        ],
+        Action   = ["cognito-idp:GetUser"],
         Effect   = "Allow",
-        Resource = data.aws_ssm_parameter.cognito_user_pool_id.value
+        Resource = ["arn:aws:cognito-idp:${var.aws_region}:${data.aws_caller_identity.current.account_id}:userpool/${data.aws_ssm_parameter.cognito_user_pool_id.value}"]
       },
       {
         # Permissão para criar e enviar logs para o CloudWatch
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
         Effect   = "Allow",
-        Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/*"
+        Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/api-gateway/*"
       }
     ]
   })
@@ -167,17 +164,4 @@ resource "aws_iam_policy" "api_gateway_policy" {
 resource "aws_iam_role_policy_attachment" "api_gateway_policy_attachment" {
   role       = aws_iam_role.api_gateway_role.name
   policy_arn = aws_iam_policy.api_gateway_policy.arn
-}
-
-######### DEPLOY DO API GATEWAY ########################################
-resource "aws_api_gateway_deployment" "api_deployment" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  stage_name  = var.stage_name
-
-  depends_on = [
-    aws_api_gateway_method.user_register_post,
-    aws_api_gateway_method.user_login_post,
-    aws_api_gateway_method.orchestrator_post,
-    aws_api_gateway_method.status_get
-  ]
 }
