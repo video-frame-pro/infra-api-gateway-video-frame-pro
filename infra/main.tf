@@ -155,6 +155,49 @@ resource "aws_api_gateway_stage" "api_stage" {
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 }
 
+######### PERMISSÕES PARA O API GATEWAY ################################
+# Criar uma Role IAM para o API Gateway acessar as Lambdas e o Cognito
+resource "aws_iam_role" "api_gateway_role" {
+  name = "${var.prefix_name}-api-gateway-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [ {
+      Effect = "Allow",
+      Principal = { Service = "apigateway.amazonaws.com" },
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+# Criar uma política IAM para permitir chamadas às Lambdas, logs e acesso ao Cognito
+resource "aws_iam_policy" "api_gateway_policy" {
+  name = "${var.prefix_name}-api-gateway-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        # Permissão para invocar as funções Lambda associadas ao API Gateway
+        Action   = ["lambda:InvokeFunction"],
+        Effect   = "Allow",
+        Resource = [
+          "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_register_name}-lambda",
+          "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_login_name}-lambda",
+          "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_orchestrator_name}-lambda",
+          "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_status_name}-lambda"
+        ]
+      }
+    ]
+  })
+}
+
+# Anexar a política IAM à role do API Gateway
+resource "aws_iam_role_policy_attachment" "api_gateway_policy_attachment" {
+  role       = aws_iam_role.api_gateway_role.name
+  policy_arn = aws_iam_policy.api_gateway_policy.arn
+}
+
 ######### DEPLOY DO API GATEWAY ########################################
 # Criação do Deployment do API Gateway
 resource "aws_api_gateway_deployment" "api_deployment" {
