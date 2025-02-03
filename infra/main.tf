@@ -70,6 +70,24 @@ resource "aws_api_gateway_resource" "status" {
   path_part   = "status"
 }
 
+#Permissões para o API Gateway chamar as Lambdas
+
+resource "aws_lambda_permission" "allow_api_gateway_orchestrator" {
+  statement_id  = "AllowExecutionFromAPIGatewayOrchestrator"
+  action        = "lambda:InvokeFunction"
+  function_name = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_orchestrator_name}-lambda"
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*"
+}
+
+resource "aws_lambda_permission" "allow_api_gateway_status" {
+  statement_id  = "AllowExecutionFromAPIGatewayStatus"
+  action        = "lambda:InvokeFunction"
+  function_name = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_status_name}-lambda"
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*"
+}
+
 ######### INTEGRAÇÕES COM LAMBDA #######################################
 # Integração do método POST /video/orchestrator com a Lambda de Orquestração
 resource "aws_api_gateway_integration" "orchestrator_integration" {
@@ -128,22 +146,22 @@ resource "aws_api_gateway_method" "status_get" {
 ######### LOGS DO API GATEWAY ##########################################
 # Criar grupos de logs no CloudWatch
 resource "aws_cloudwatch_log_group" "api_gateway_register_log" {
-  name              = "/aws/api-gateway/${var.prefix_name}-register-gateway"
+  name              = "/aws/api-gateway/${var.prefix_name}-${var.lambda_register_name}-gateway"
   retention_in_days = var.log_retention_days
 }
 
 resource "aws_cloudwatch_log_group" "api_gateway_login_log" {
-  name              = "/aws/api-gateway/${var.prefix_name}-login-gateway"
+  name              = "/aws/api-gateway/${var.prefix_name}-${var.lambda_login_name}-gateway"
   retention_in_days = var.log_retention_days
 }
 
 resource "aws_cloudwatch_log_group" "api_gateway_orchestrator_log" {
-  name              = "/aws/api-gateway/${var.prefix_name}-orchestrator-gateway"
+  name              = "/aws/api-gateway/${var.prefix_name}-${var.lambda_orchestrator_name}-gateway"
   retention_in_days = var.log_retention_days
 }
 
 resource "aws_cloudwatch_log_group" "api_gateway_status_log" {
-  name              = "/aws/api-gateway/${var.prefix_name}-status-gateway"
+  name              = "/aws/api-gateway/${var.prefix_name}-${var.lambda_status_name}-gateway"
   retention_in_days = var.log_retention_days
 }
 
@@ -178,18 +196,20 @@ resource "aws_iam_policy" "api_gateway_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        # Permissão para invocar as funções Lambda associadas ao API Gateway
         Action   = ["lambda:InvokeFunction"],
         Effect   = "Allow",
         Resource = [
-          "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_register_name}-lambda",
-          "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_login_name}-lambda",
           "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_orchestrator_name}-lambda",
           "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_status_name}-lambda"
         ]
       }
     ]
   })
+}
+
+resource "aws_iam_role_policy_attachment" "api_gateway_policy_attachment" {
+  role       = aws_iam_role.api_gateway_role.name
+  policy_arn = aws_iam_policy.api_gateway_policy.arn
 }
 
 # Anexar a política IAM à role do API Gateway
