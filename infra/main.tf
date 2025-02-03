@@ -87,7 +87,7 @@ resource "aws_api_gateway_integration" "status_integration" {
   resource_id             = aws_api_gateway_resource.status.id
   http_method             = aws_api_gateway_method.status_get.http_method
   type                    = "AWS_PROXY"
-  integration_http_method = "GET"
+  integration_http_method = "POST"  # API Gateway usa POST para chamar Lambdas, mesmo em GET
   uri                     = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_status_name}-lambda/invocations"
 }
 
