@@ -13,3 +13,6 @@ lambda_status_name       = "status"
 
 ######### COGNITO #####################################################
 cognito_user_pool_id_ssm = "/video-frame-pro/cognito/user_pool_id"
+
+######### LOGS CLOUD WATCH #############################################
+log_retention_days = 7 # Dias para retenção dos logs no CloudWatch

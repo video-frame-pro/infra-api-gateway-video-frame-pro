@@ -33,3 +33,8 @@ variable "lambda_status_name" {
 variable "cognito_user_pool_id_ssm" {
   description = "Caminho no SSM para o ID do User Pool do Cognito"
 }
+
+######### LOGS CLOUD WATCH #############################################
+variable "log_retention_days" {
+  description = "Número de dias para retenção dos logs no CloudWatch"
+}
