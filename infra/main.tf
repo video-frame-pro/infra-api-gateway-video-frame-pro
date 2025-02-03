@@ -70,6 +70,27 @@ resource "aws_api_gateway_resource" "status" {
   path_part   = "status"
 }
 
+######### INTEGRAÇÕES COM LAMBDA #######################################
+# Integração do método POST /video/orchestrator com a Lambda de Orquestração
+resource "aws_api_gateway_integration" "orchestrator_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.orchestrator.id
+  http_method             = aws_api_gateway_method.orchestrator_post.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_orchestrator_name}-lambda"
+}
+
+# Integração do método GET /video/status com a Lambda de Status
+resource "aws_api_gateway_integration" "status_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.status.id
+  http_method             = aws_api_gateway_method.status_get.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_status_name}-lambda"
+}
+
 ######### MÉTODOS DO API GATEWAY #######################################
 # Métodos para autenticação (sem necessidade de autorização)
 resource "aws_api_gateway_method" "user_register_post" {
@@ -105,7 +126,7 @@ resource "aws_api_gateway_method" "status_get" {
 }
 
 ######### LOGS DO API GATEWAY ##########################################
-# Criar grupo de logs para a API Gateway no CloudWatch
+# Criar grupos de logs no CloudWatch
 resource "aws_cloudwatch_log_group" "api_gateway_register_log" {
   name              = "/aws/api-gateway/${var.prefix_name}-register-gateway"
   retention_in_days = var.log_retention_days
@@ -126,59 +147,25 @@ resource "aws_cloudwatch_log_group" "api_gateway_status_log" {
   retention_in_days = var.log_retention_days
 }
 
+######### STAGE DO API GATEWAY #########################################
+# Criando um estágio explícito, pois `stage_name` está obsoleto
+resource "aws_api_gateway_stage" "api_stage" {
+  stage_name    = var.stage_name
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  deployment_id = aws_api_gateway_deployment.api_deployment.id
+}
+
 ######### DEPLOY DO API GATEWAY ########################################
 # Criação do Deployment do API Gateway
 resource "aws_api_gateway_deployment" "api_deployment" {
   rest_api_id = aws_api_gateway_rest_api.api.id
-  stage_name  = var.stage_name
 
   depends_on = [
     aws_api_gateway_method.user_register_post,
     aws_api_gateway_method.user_login_post,
     aws_api_gateway_method.orchestrator_post,
-    aws_api_gateway_method.status_get
+    aws_api_gateway_method.status_get,
+    aws_api_gateway_integration.orchestrator_integration,
+    aws_api_gateway_integration.status_integration
   ]
-}
-
-######### PERMISSÕES PARA O API GATEWAY ################################
-# Criar uma Role IAM para o API Gateway acessar as Lambdas e o Cognito
-resource "aws_iam_role" "api_gateway_role" {
-  name = "${var.prefix_name}-api-gateway-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [ {
-      Effect = "Allow",
-      Principal = { Service = "apigateway.amazonaws.com" },
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-# Criar uma política IAM para permitir chamadas às Lambdas, logs e acesso ao Cognito
-resource "aws_iam_policy" "api_gateway_policy" {
-  name = "${var.prefix_name}-api-gateway-policy"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        # Permissão para invocar as funções Lambda associadas ao API Gateway
-        Action   = ["lambda:InvokeFunction"],
-        Effect   = "Allow",
-        Resource = [
-          "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_register_name}-lambda",
-          "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_login_name}-lambda",
-          "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_orchestrator_name}-lambda",
-          "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_status_name}-lambda"
-        ]
-      }
-    ]
-  })
-}
-
-# Anexar a política IAM à role do API Gateway
-resource "aws_iam_role_policy_attachment" "api_gateway_policy_attachment" {
-  role       = aws_iam_role.api_gateway_role.name
-  policy_arn = aws_iam_policy.api_gateway_policy.arn
 }
