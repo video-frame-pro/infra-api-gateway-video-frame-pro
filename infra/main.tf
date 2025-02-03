@@ -78,7 +78,7 @@ resource "aws_api_gateway_integration" "orchestrator_integration" {
   http_method             = aws_api_gateway_method.orchestrator_post.http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
-  uri                     = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_orchestrator_name}-lambda"
+  uri                     = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_orchestrator_name}-lambda/invocations"
 }
 
 # Integração do método GET /video/status com a Lambda de Status
@@ -88,7 +88,7 @@ resource "aws_api_gateway_integration" "status_integration" {
   http_method             = aws_api_gateway_method.status_get.http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
-  uri                     = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_status_name}-lambda"
+  uri                     = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_status_name}-lambda/invocations"
 }
 
 ######### MÉTODOS DO API GATEWAY #######################################
