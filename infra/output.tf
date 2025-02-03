@@ -1,10 +1,13 @@
-######### API GATEWAY OUTPUTS ##########################################
-output "api_gateway_invoke_url" {
-  value       = "${aws_api_gateway_deployment.api_deployment.invoke_url}/${var.stage_name}"
-  description = "URL base para chamadas no API Gateway"
+######### OUTPUTS ######################################################
+
+# ID do API Gateway
+output "api_gateway_id" {
+  description = "ID do API Gateway criado"
+  value       = aws_api_gateway_rest_api.api.id
 }
 
-output "api_gateway_authorizer_arn" {
-  value       = aws_api_gateway_authorizer.cognito_authorizer.id
-  description = "ARN do autorizador Cognito"
+# ARN do API Gateway
+output "api_gateway_arn" {
+  description = "ARN do API Gateway criado"
+  value       = aws_api_gateway_rest_api.api.arn
 }

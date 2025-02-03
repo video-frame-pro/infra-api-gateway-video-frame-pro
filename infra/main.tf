@@ -165,3 +165,17 @@ resource "aws_iam_role_policy_attachment" "api_gateway_policy_attachment" {
   role       = aws_iam_role.api_gateway_role.name
   policy_arn = aws_iam_policy.api_gateway_policy.arn
 }
+
+######### DEPLOY DO API GATEWAY ########################################
+# Criação do Deployment do API Gateway
+resource "aws_api_gateway_deployment" "api_deployment" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  stage_name  = var.stage_name
+
+  depends_on = [
+    aws_api_gateway_method.user_register_post,
+    aws_api_gateway_method.user_login_post,
+    aws_api_gateway_method.orchestrator_post,
+    aws_api_gateway_method.status_get
+  ]
+}
