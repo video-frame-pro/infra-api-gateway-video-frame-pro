@@ -96,7 +96,7 @@ resource "aws_api_gateway_integration" "register_integration" {
   http_method             = aws_api_gateway_method.auth_register_post.http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
-  uri                     = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_register_name}-lambda/invocations"
+  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_register_name}-lambda/invocations"
 
   depends_on = [aws_lambda_permission.allow_api_gateway_register]
 }
@@ -108,7 +108,7 @@ resource "aws_api_gateway_integration" "login_integration" {
   http_method             = aws_api_gateway_method.auth_login_post.http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
-  uri                     = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_login_name}-lambda/invocations"
+  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_login_name}-lambda/invocations"
 
   depends_on = [aws_lambda_permission.allow_api_gateway_login]
 }
@@ -120,7 +120,7 @@ resource "aws_api_gateway_integration" "orchestrator_integration" {
   http_method             = aws_api_gateway_method.orchestrator_post.http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
-  uri                     = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_orchestrator_name}-lambda/invocations"
+  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_orchestrator_name}-lambda/invocations"
 
   depends_on = [aws_lambda_permission.allow_api_gateway_orchestrator]
 }
@@ -131,11 +131,12 @@ resource "aws_api_gateway_integration" "status_integration" {
   resource_id             = aws_api_gateway_resource.status.id
   http_method             = aws_api_gateway_method.status_get.http_method
   type                    = "AWS_PROXY"
-  integration_http_method = "GET"  # API Gateway sempre chama Lambdas com POST, mesmo em GET
-  uri                     = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_status_name}-lambda/invocations"
+  integration_http_method = "POST"  # API Gateway sempre chama Lambdas com POST, mesmo em GET
+  uri                     = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${var.prefix_name}-${var.lambda_status_name}-lambda/invocations"
 
   depends_on = [aws_lambda_permission.allow_api_gateway_status]
 }
+
 
 ######### PERMISSÕES PARA O API GATEWAY ################################
 # Permissões para a Lambda de Registro
